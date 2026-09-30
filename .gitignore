@@ -1,0 +1,23 @@
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.setup-state.json
+
+# Local model payloads and generated output
+models/
+weights/
+_shared/
+outputs/
+*.safetensors
+*.bin
+*.ckpt
+*.pt
+*.pth
+*.part
+
+# Local credentials
+.env
+.env.*
+*.pem
+*.key

@@ -1,0 +1,8 @@
+# Accelerator wheels are selected separately by setup.py.
+diffusers @ git+https://github.com/huggingface/diffusers.git@e0abab83b5df05de9e7abd788643c1a7c1e42e28
+transformers==5.17.0
+tokenizers==0.23.1
+huggingface-hub==1.32.0
+safetensors==0.8.0
+accelerate==1.11.0
+Pillow==11.1.0

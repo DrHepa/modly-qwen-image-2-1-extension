@@ -1,0 +1,836 @@
+{
+  "id": "qwen-image-2-1",
+  "name": "Qwen Image 2.1",
+  "type": "model",
+  "version": "0.3.2",
+  "author": "DrHepa",
+  "description": "Image generation and editing powered by Qwen Image 2.1, with optional community reduced-refusal prompt enhancement. Research-only checkpoint license.",
+  "source": "https://github.com/DrHepa/modly-qwen-image-2-1-extension",
+  "generator_class": "QwenImage21Generator",
+  "nodes": [
+    {
+      "id": "generate",
+      "name": "Generate Image",
+      "input": "text",
+      "output": "image",
+      "params_schema": [
+        {
+          "id": "prompt",
+          "label": "Prompt",
+          "type": "string",
+          "default": "",
+          "tooltip": "Describe the image. For Edit nodes, refer to images in connected order as <image1> through <image10>."
+        },
+        {
+          "id": "negative_prompt",
+          "label": "Negative prompt",
+          "type": "string",
+          "default": "",
+          "tooltip": "Only active when True CFG scale is above 1."
+        },
+        {
+          "id": "width",
+          "label": "Width",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32
+        },
+        {
+          "id": "height",
+          "label": "Height",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32
+        },
+        {
+          "id": "output_resolution",
+          "label": "Reference processing resolution",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32,
+          "tooltip": "Reference area target used by the image pipeline. Does not override output width/height. Higher values increase memory use."
+        },
+        {
+          "id": "steps",
+          "label": "Denoising steps",
+          "type": "int",
+          "default": 40,
+          "min": 1,
+          "max": 100,
+          "step": 1
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "int",
+          "default": 42,
+          "min": 0,
+          "max": 4294967295,
+          "step": 1
+        },
+        {
+          "id": "true_cfg_scale",
+          "label": "True CFG scale",
+          "type": "float",
+          "default": 1.0,
+          "min": 1.0,
+          "max": 10.0,
+          "step": 0.1
+        },
+        {
+          "id": "use_kv_cache",
+          "label": "KV cache",
+          "type": "select",
+          "default": "true",
+          "options": [
+            {
+              "value": "true",
+              "label": "Enabled"
+            },
+            {
+              "value": "false",
+              "label": "Disabled"
+            }
+          ]
+        },
+        {
+          "id": "memory_mode",
+          "label": "Memory mode",
+          "type": "select",
+          "default": "offload",
+          "options": [
+            {
+              "value": "offload",
+              "label": "CPU model offload"
+            },
+            {
+              "value": "cuda",
+              "label": "Keep image model on CUDA"
+            }
+          ],
+          "tooltip": "Offload reduces GPU residency; system RAM is still required. Neither mode guarantees sufficient memory for ten large references."
+        }
+      ],
+      "weight_groups": [
+        "qwen-image-2-1"
+      ]
+    },
+    {
+      "id": "edit",
+      "name": "Edit Image \u2014 10 References",
+      "input": "image",
+      "output": "image",
+      "params_schema": [
+        {
+          "id": "prompt",
+          "label": "Prompt",
+          "type": "string",
+          "default": "",
+          "tooltip": "Describe the image. For Edit nodes, refer to images in connected order as <image1> through <image10>."
+        },
+        {
+          "id": "negative_prompt",
+          "label": "Negative prompt",
+          "type": "string",
+          "default": "",
+          "tooltip": "Only active when True CFG scale is above 1."
+        },
+        {
+          "id": "width",
+          "label": "Width",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32
+        },
+        {
+          "id": "height",
+          "label": "Height",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32
+        },
+        {
+          "id": "output_resolution",
+          "label": "Reference processing resolution",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32,
+          "tooltip": "Reference area target used by the image pipeline. Does not override output width/height. Higher values increase memory use."
+        },
+        {
+          "id": "steps",
+          "label": "Denoising steps",
+          "type": "int",
+          "default": 40,
+          "min": 1,
+          "max": 100,
+          "step": 1
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "int",
+          "default": 42,
+          "min": 0,
+          "max": 4294967295,
+          "step": 1
+        },
+        {
+          "id": "true_cfg_scale",
+          "label": "True CFG scale",
+          "type": "float",
+          "default": 1.0,
+          "min": 1.0,
+          "max": 10.0,
+          "step": 0.1
+        },
+        {
+          "id": "use_kv_cache",
+          "label": "KV cache",
+          "type": "select",
+          "default": "true",
+          "options": [
+            {
+              "value": "true",
+              "label": "Enabled"
+            },
+            {
+              "value": "false",
+              "label": "Disabled"
+            }
+          ]
+        },
+        {
+          "id": "memory_mode",
+          "label": "Memory mode",
+          "type": "select",
+          "default": "offload",
+          "options": [
+            {
+              "value": "offload",
+              "label": "CPU model offload"
+            },
+            {
+              "value": "cuda",
+              "label": "Keep image model on CUDA"
+            }
+          ],
+          "tooltip": "Offload reduces GPU residency; system RAM is still required. Neither mode guarantees sufficient memory for ten large references."
+        }
+      ],
+      "inputs": [
+        "image",
+        "image",
+        "image",
+        "image",
+        "image",
+        "image",
+        "image",
+        "image",
+        "image",
+        "image"
+      ],
+      "input_contract": [
+        {
+          "name": "image",
+          "label": "Reference 1",
+          "type": "image",
+          "required": true
+        },
+        {
+          "name": "image_2",
+          "label": "Reference 2",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_3",
+          "label": "Reference 3",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_4",
+          "label": "Reference 4",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_5",
+          "label": "Reference 5",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_6",
+          "label": "Reference 6",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_7",
+          "label": "Reference 7",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_8",
+          "label": "Reference 8",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_9",
+          "label": "Reference 9",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_10",
+          "label": "Reference 10",
+          "type": "image",
+          "required": false
+        }
+      ],
+      "input_labels": [
+        "Reference 1",
+        "Reference 2",
+        "Reference 3",
+        "Reference 4",
+        "Reference 5",
+        "Reference 6",
+        "Reference 7",
+        "Reference 8",
+        "Reference 9",
+        "Reference 10"
+      ],
+      "weight_groups": [
+        "qwen-image-2-1"
+      ]
+    },
+    {
+      "id": "generate-enhanced",
+      "name": "Generate Image \u2014 Enhanced Prompt",
+      "input": "text",
+      "output": "image",
+      "params_schema": [
+        {
+          "id": "prompt",
+          "label": "Prompt",
+          "type": "string",
+          "default": "",
+          "tooltip": "Describe the image. For Edit nodes, refer to images in connected order as <image1> through <image10>."
+        },
+        {
+          "id": "negative_prompt",
+          "label": "Negative prompt",
+          "type": "string",
+          "default": "",
+          "tooltip": "Only active when True CFG scale is above 1."
+        },
+        {
+          "id": "width",
+          "label": "Width",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32
+        },
+        {
+          "id": "height",
+          "label": "Height",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32
+        },
+        {
+          "id": "output_resolution",
+          "label": "Reference processing resolution",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32,
+          "tooltip": "Reference area target used by the image pipeline. Does not override output width/height. Higher values increase memory use."
+        },
+        {
+          "id": "steps",
+          "label": "Denoising steps",
+          "type": "int",
+          "default": 40,
+          "min": 1,
+          "max": 100,
+          "step": 1
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "int",
+          "default": 42,
+          "min": 0,
+          "max": 4294967295,
+          "step": 1
+        },
+        {
+          "id": "true_cfg_scale",
+          "label": "True CFG scale",
+          "type": "float",
+          "default": 1.0,
+          "min": 1.0,
+          "max": 10.0,
+          "step": 0.1
+        },
+        {
+          "id": "use_kv_cache",
+          "label": "KV cache",
+          "type": "select",
+          "default": "true",
+          "options": [
+            {
+              "value": "true",
+              "label": "Enabled"
+            },
+            {
+              "value": "false",
+              "label": "Disabled"
+            }
+          ]
+        },
+        {
+          "id": "memory_mode",
+          "label": "Memory mode",
+          "type": "select",
+          "default": "offload",
+          "options": [
+            {
+              "value": "offload",
+              "label": "CPU model offload"
+            },
+            {
+              "value": "cuda",
+              "label": "Keep image model on CUDA"
+            }
+          ],
+          "tooltip": "Offload reduces GPU residency; system RAM is still required. Neither mode guarantees sufficient memory for ten large references."
+        },
+        {
+          "id": "enhancer_thinking",
+          "label": "Enhancer thinking",
+          "type": "select",
+          "default": "off",
+          "options": [
+            {
+              "value": "off",
+              "label": "Off (faster, direct JSON)"
+            },
+            {
+              "value": "on",
+              "label": "On (slower reasoning)"
+            }
+          ],
+          "tooltip": "Off uses a direct answer for faster enhancement. On permits slower internal reasoning; completion time and quality are not guaranteed."
+        },
+        {
+          "id": "enhancer_max_tokens",
+          "label": "Enhancer token budget",
+          "type": "int",
+          "default": 4096,
+          "min": 128,
+          "max": 32768,
+          "step": 64,
+          "tooltip": "Maximum new enhancer tokens. Incomplete JSON or thinking output fails explicitly; no silent fallback."
+        }
+      ],
+      "weight_groups": [
+        "qwen-image-2-1"
+      ],
+      "model_sources": [
+        {
+          "id": "prompt-enhancer",
+          "provider": "huggingface",
+          "repo_id": "pottokao/Qwen-Image-2.1-PE-T2I-Heretic",
+          "revision": "96e92081f46cd0ca2ac9679432c5b8b02c12cfdb",
+          "destination": "prompt_enhancer",
+          "include_prefixes": [
+            "LICENSE",
+            "chat_template.jinja",
+            "config.json",
+            "generation_config.json",
+            "model-00001-of-00004.safetensors",
+            "model-00002-of-00004.safetensors",
+            "model-00003-of-00004.safetensors",
+            "model-00004-of-00004.safetensors",
+            "model.safetensors.index.json",
+            "processor_config.json",
+            "system_prompt.txt",
+            "tokenizer.json",
+            "tokenizer_config.json"
+          ],
+          "checks": [
+            "LICENSE",
+            "chat_template.jinja",
+            "config.json",
+            "generation_config.json",
+            "model-00001-of-00004.safetensors",
+            "model-00002-of-00004.safetensors",
+            "model-00003-of-00004.safetensors",
+            "model-00004-of-00004.safetensors",
+            "model.safetensors.index.json",
+            "processor_config.json",
+            "system_prompt.txt",
+            "tokenizer.json",
+            "tokenizer_config.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "edit-enhanced",
+      "name": "Edit Image \u2014 Enhanced Prompt",
+      "input": "image",
+      "output": "image",
+      "params_schema": [
+        {
+          "id": "prompt",
+          "label": "Prompt",
+          "type": "string",
+          "default": "",
+          "tooltip": "Describe the image. For Edit nodes, refer to images in connected order as <image1> through <image10>."
+        },
+        {
+          "id": "negative_prompt",
+          "label": "Negative prompt",
+          "type": "string",
+          "default": "",
+          "tooltip": "Only active when True CFG scale is above 1."
+        },
+        {
+          "id": "width",
+          "label": "Width",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32
+        },
+        {
+          "id": "height",
+          "label": "Height",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32
+        },
+        {
+          "id": "output_resolution",
+          "label": "Reference processing resolution",
+          "type": "int",
+          "default": 1024,
+          "min": 256,
+          "max": 2048,
+          "step": 32,
+          "tooltip": "Reference area target used by the image pipeline. Does not override output width/height. Higher values increase memory use."
+        },
+        {
+          "id": "steps",
+          "label": "Denoising steps",
+          "type": "int",
+          "default": 40,
+          "min": 1,
+          "max": 100,
+          "step": 1
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "int",
+          "default": 42,
+          "min": 0,
+          "max": 4294967295,
+          "step": 1
+        },
+        {
+          "id": "true_cfg_scale",
+          "label": "True CFG scale",
+          "type": "float",
+          "default": 1.0,
+          "min": 1.0,
+          "max": 10.0,
+          "step": 0.1
+        },
+        {
+          "id": "use_kv_cache",
+          "label": "KV cache",
+          "type": "select",
+          "default": "true",
+          "options": [
+            {
+              "value": "true",
+              "label": "Enabled"
+            },
+            {
+              "value": "false",
+              "label": "Disabled"
+            }
+          ]
+        },
+        {
+          "id": "memory_mode",
+          "label": "Memory mode",
+          "type": "select",
+          "default": "offload",
+          "options": [
+            {
+              "value": "offload",
+              "label": "CPU model offload"
+            },
+            {
+              "value": "cuda",
+              "label": "Keep image model on CUDA"
+            }
+          ],
+          "tooltip": "Offload reduces GPU residency; system RAM is still required. Neither mode guarantees sufficient memory for ten large references."
+        },
+        {
+          "id": "enhancer_thinking",
+          "label": "Enhancer thinking",
+          "type": "select",
+          "default": "off",
+          "options": [
+            {
+              "value": "off",
+              "label": "Off (faster, direct JSON)"
+            },
+            {
+              "value": "on",
+              "label": "On (slower reasoning)"
+            }
+          ],
+          "tooltip": "Off uses a direct answer for faster enhancement. On permits slower internal reasoning; completion time and quality are not guaranteed."
+        },
+        {
+          "id": "enhancer_max_tokens",
+          "label": "Enhancer token budget",
+          "type": "int",
+          "default": 4096,
+          "min": 128,
+          "max": 32768,
+          "step": 64,
+          "tooltip": "Maximum new enhancer tokens. Incomplete JSON or thinking output fails explicitly; no silent fallback."
+        }
+      ],
+      "inputs": [
+        "image",
+        "image",
+        "image",
+        "image",
+        "image",
+        "image",
+        "image",
+        "image",
+        "image",
+        "image"
+      ],
+      "input_contract": [
+        {
+          "name": "image",
+          "label": "Reference 1",
+          "type": "image",
+          "required": true
+        },
+        {
+          "name": "image_2",
+          "label": "Reference 2",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_3",
+          "label": "Reference 3",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_4",
+          "label": "Reference 4",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_5",
+          "label": "Reference 5",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_6",
+          "label": "Reference 6",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_7",
+          "label": "Reference 7",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_8",
+          "label": "Reference 8",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_9",
+          "label": "Reference 9",
+          "type": "image",
+          "required": false
+        },
+        {
+          "name": "image_10",
+          "label": "Reference 10",
+          "type": "image",
+          "required": false
+        }
+      ],
+      "input_labels": [
+        "Reference 1",
+        "Reference 2",
+        "Reference 3",
+        "Reference 4",
+        "Reference 5",
+        "Reference 6",
+        "Reference 7",
+        "Reference 8",
+        "Reference 9",
+        "Reference 10"
+      ],
+      "weight_groups": [
+        "qwen-image-2-1"
+      ],
+      "model_sources": [
+        {
+          "id": "prompt-enhancer",
+          "provider": "huggingface",
+          "repo_id": "darrellbest/Qwen-Image-2.1-PE-I2I-Heretic",
+          "revision": "0402e068524500b29633ccc4f85b90779fe73092",
+          "destination": "prompt_enhancer",
+          "include_prefixes": [
+            "LICENSE",
+            "chat_template.jinja",
+            "config.json",
+            "generation_config.json",
+            "model-00001-of-00004.safetensors",
+            "model-00002-of-00004.safetensors",
+            "model-00003-of-00004.safetensors",
+            "model-00004-of-00004.safetensors",
+            "model.safetensors.index.json",
+            "processor_config.json",
+            "system_prompt.txt",
+            "tokenizer.json",
+            "tokenizer_config.json"
+          ],
+          "checks": [
+            "LICENSE",
+            "chat_template.jinja",
+            "config.json",
+            "generation_config.json",
+            "model-00001-of-00004.safetensors",
+            "model-00002-of-00004.safetensors",
+            "model-00003-of-00004.safetensors",
+            "model-00004-of-00004.safetensors",
+            "model.safetensors.index.json",
+            "processor_config.json",
+            "system_prompt.txt",
+            "tokenizer.json",
+            "tokenizer_config.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "weight_groups": [
+    {
+      "id": "qwen-image-2-1",
+      "model_sources": [
+        {
+          "id": "image",
+          "provider": "huggingface",
+          "repo_id": "Qwen/Qwen-Image-2.1",
+          "revision": "790c92633540aa0cb11d9abf19eb46d861714758",
+          "destination": ".",
+          "include_prefixes": [
+            "LICENSE",
+            "model_index.json",
+            "processor/added_tokens.json",
+            "processor/chat_template.jinja",
+            "processor/merges.txt",
+            "processor/preprocessor_config.json",
+            "processor/special_tokens_map.json",
+            "processor/tokenizer.json",
+            "processor/tokenizer_config.json",
+            "processor/video_preprocessor_config.json",
+            "processor/vocab.json",
+            "scheduler/scheduler_config.json",
+            "text_encoder/config.json",
+            "text_encoder/generation_config.json",
+            "text_encoder/model-00001-of-00004.safetensors",
+            "text_encoder/model-00002-of-00004.safetensors",
+            "text_encoder/model-00003-of-00004.safetensors",
+            "text_encoder/model-00004-of-00004.safetensors",
+            "text_encoder/model.safetensors.index.json",
+            "transformer/config.json",
+            "transformer/diffusion_pytorch_model-00001-of-00002.safetensors",
+            "transformer/diffusion_pytorch_model-00002-of-00002.safetensors",
+            "transformer/diffusion_pytorch_model.safetensors.index.json",
+            "vae/config.json",
+            "vae/diffusion_pytorch_model.safetensors"
+          ],
+          "checks": [
+            "LICENSE",
+            "model_index.json",
+            "processor/added_tokens.json",
+            "processor/chat_template.jinja",
+            "processor/merges.txt",
+            "processor/preprocessor_config.json",
+            "processor/special_tokens_map.json",
+            "processor/tokenizer.json",
+            "processor/tokenizer_config.json",
+            "processor/video_preprocessor_config.json",
+            "processor/vocab.json",
+            "scheduler/scheduler_config.json",
+            "text_encoder/config.json",
+            "text_encoder/generation_config.json",
+            "text_encoder/model-00001-of-00004.safetensors",
+            "text_encoder/model-00002-of-00004.safetensors",
+            "text_encoder/model-00003-of-00004.safetensors",
+            "text_encoder/model-00004-of-00004.safetensors",
+            "text_encoder/model.safetensors.index.json",
+            "transformer/config.json",
+            "transformer/diffusion_pytorch_model-00001-of-00002.safetensors",
+            "transformer/diffusion_pytorch_model-00002-of-00002.safetensors",
+            "transformer/diffusion_pytorch_model.safetensors.index.json",
+            "vae/config.json",
+            "vae/diffusion_pytorch_model.safetensors"
+          ]
+        }
+      ]
+    }
+  ]
+}

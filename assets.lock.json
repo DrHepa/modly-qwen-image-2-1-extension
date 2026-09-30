@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "components": {
+    "image": {
+      "repo_id": "Qwen/Qwen-Image-2.1",
+      "revision": "790c92633540aa0cb11d9abf19eb46d861714758",
+      "files": {
+        "LICENSE": {
+          "size": 7831,
+          "sha256": "8dc973f024ff95966bea25866efa443fd16776dcb1001e681e3d467ea572b28d"
+        },
+        "model_index.json": {
+          "size": 447,
+          "sha256": "cf1ecd104ea090855d60d8cec0895c1e9d6ee41b2f87e231b678beecd1cf7809"
+        },
+        "processor/added_tokens.json": {
+          "size": 707,
+          "sha256": "c0284b582e14987fbd3d5a2cb2bd139084371ed9acbae488829a1c900833c680"
+        },
+        "processor/chat_template.jinja": {
+          "size": 5292,
+          "sha256": "3636d0f0bd6bef02654cdffdc447b79cb2cef8ab02cc75267345946291a489e4"
+        },
+        "processor/merges.txt": {
+          "size": 1671853,
+          "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"
+        },
+        "processor/preprocessor_config.json": {
+          "size": 782,
+          "sha256": "93585062a80db5e8ca038efc7726a3e6411d9db948472d81d63c6303993be8c5"
+        },
+        "processor/special_tokens_map.json": {
+          "size": 613,
+          "sha256": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd"
+        },
+        "processor/tokenizer.json": {
+          "size": 11422654,
+          "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"
+        },
+        "processor/tokenizer_config.json": {
+          "size": 5445,
+          "sha256": "81ec7bb9530159b326c0bef1d0b6c33d392090524014ea3f0123a3c1eb9c2af5"
+        },
+        "processor/video_preprocessor_config.json": {
+          "size": 817,
+          "sha256": "59c5c9eb52182eb14c06ffb10ca9effd29adce5f238a95de23ca14a38dbd2cb1"
+        },
+        "processor/vocab.json": {
+          "size": 2776833,
+          "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        },
+        "scheduler/scheduler_config.json": {
+          "size": 485,
+          "sha256": "5895f3a167c14a967fe9ac70c64924ae5acc79799e0679fd12907e594a713cd1"
+        },
+        "text_encoder/config.json": {
+          "size": 1517,
+          "sha256": "6001331949f7f86ab6d791a80b12246d4f8da5159fa08c3e62368a39f36d63a9"
+        },
+        "text_encoder/generation_config.json": {
+          "size": 213,
+          "sha256": "4d9818c3d27895c0058828a5f68bc7a4de80c3ae1bcdac90936ce24178063f59"
+        },
+        "text_encoder/model-00001-of-00004.safetensors": {
+          "size": 4998056552,
+          "sha256": "dde00291b5f7fb92013895310a3da0ddba78674df9f10d505d375243dc01fc6f"
+        },
+        "text_encoder/model-00002-of-00004.safetensors": {
+          "size": 4915962464,
+          "sha256": "9047faccc0a6d98496a52d55f27be1c94a9c259d1e283fbea0128d054a948d42"
+        },
+        "text_encoder/model-00003-of-00004.safetensors": {
+          "size": 4915962496,
+          "sha256": "8c54187654c0176b73ae73785bf791dc9a14c9df7fb4310083a09d42048cb57e"
+        },
+        "text_encoder/model-00004-of-00004.safetensors": {
+          "size": 2704357976,
+          "sha256": "5311532aaaeae3259eb6a7b2c600636be1159adf7ded35f53579f7d0e7d43cdd"
+        },
+        "text_encoder/model.safetensors.index.json": {
+          "size": 67795,
+          "sha256": "859146bff8db1d617fca8b457a5223edff963bb70076b3645f2189fe0540a147"
+        },
+        "transformer/config.json": {
+          "size": 370,
+          "sha256": "56ae3281c4e6c2d1aa3658252d187488071815fd79bef15808bb0205fc1a2241"
+        },
+        "transformer/diffusion_pytorch_model-00001-of-00002.safetensors": {
+          "size": 9968332504,
+          "sha256": "9e6bc2d641e67bf277895ea8777141044a38f3edb7101bc469b2961dd7c36b4b"
+        },
+        "transformer/diffusion_pytorch_model-00002-of-00002.safetensors": {
+          "size": 4261951904,
+          "sha256": "3aaf234dcbe128530479735854a346b5e3e66283b7c11db56f836bbd1c13ebaa"
+        },
+        "transformer/diffusion_pytorch_model.safetensors.index.json": {
+          "size": 30283,
+          "sha256": "17987f6623b1c814d0ef55a137d99142b7b3b040eb1bf241b5575dd35af803a2"
+        },
+        "vae/config.json": {
+          "size": 2079,
+          "sha256": "9785d527b278cb8b210e9f48a8028d92a4190968ce7e24c8fc85d9d1b82f6ba2"
+        },
+        "vae/diffusion_pytorch_model.safetensors": {
+          "size": 1350989512,
+          "sha256": "a07a1b7c4ee2966a1b3bdc37de9b4f983d56937e46619f709a80b6e490675417"
+        }
+      },
+      "indexes": {
+        "text_encoder/model.safetensors.index.json": [
+          "text_encoder/model-00001-of-00004.safetensors",
+          "text_encoder/model-00002-of-00004.safetensors",
+          "text_encoder/model-00003-of-00004.safetensors",
+          "text_encoder/model-00004-of-00004.safetensors"
+        ],
+        "transformer/diffusion_pytorch_model.safetensors.index.json": [
+          "transformer/diffusion_pytorch_model-00001-of-00002.safetensors",
+          "transformer/diffusion_pytorch_model-00002-of-00002.safetensors"
+        ]
+      }
+    },
+    "t2i": {
+      "repo_id": "pottokao/Qwen-Image-2.1-PE-T2I-Heretic",
+      "revision": "96e92081f46cd0ca2ac9679432c5b8b02c12cfdb",
+      "files": {
+        "LICENSE": {
+          "size": 7831,
+          "sha256": "8dc973f024ff95966bea25866efa443fd16776dcb1001e681e3d467ea572b28d"
+        },
+        "chat_template.jinja": {
+          "size": 7756,
+          "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715"
+        },
+        "config.json": {
+          "size": 2856,
+          "sha256": "edf64f9b3295a6fe6b8deda075485d911a9f406b042ac53e829ce6784bdb01cb"
+        },
+        "generation_config.json": {
+          "size": 204,
+          "sha256": "51d4fa935eab282d38d611f46141548142ac8dea36c1fafd5314c5c015f20acd"
+        },
+        "model-00001-of-00004.safetensors": {
+          "size": 5074583064,
+          "sha256": "c06250d4e50aa7e100573e664676913ddb664f29cc6684a735d2d27efddf5e9c"
+        },
+        "model-00002-of-00004.safetensors": {
+          "size": 5089028664,
+          "sha256": "aa0b767f1a1178651afc58587404f3382b8bb01096b61ec711c5e90c0ab2f02b"
+        },
+        "model-00003-of-00004.safetensors": {
+          "size": 5089028760,
+          "sha256": "57beec1708f901bbc85ffc95533be3f841dde11d5b62b68e95a1f69a309ff625"
+        },
+        "model-00004-of-00004.safetensors": {
+          "size": 3567080680,
+          "sha256": "f07ca1c7c96def7edea109b8cc5ee19bb65e587503a49b5b3456854fa703c93f"
+        },
+        "model.safetensors.index.json": {
+          "size": 69216,
+          "sha256": "27cb931bb2f3324eadad85d79fd408561499c00e84d2ce352cfd8583e3bfede5"
+        },
+        "processor_config.json": {
+          "size": 1298,
+          "sha256": "e612ca25e93af6072f0c3f6dec5913b8a1326332503ca66d7b4c9ef8336c4b38"
+        },
+        "system_prompt.txt": {
+          "size": 10045,
+          "sha256": "a77c9a06c59b120741141d9514b95682bb8761d02bec49ca61def7b2b3d9fb99"
+        },
+        "tokenizer.json": {
+          "size": 19989343,
+          "sha256": "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4"
+        },
+        "tokenizer_config.json": {
+          "size": 1166,
+          "sha256": "b0130c1a11528a8a2d6a079d51a38ca357d4100e97ee3d4c02da034771e85430"
+        }
+      },
+      "indexes": {
+        "model.safetensors.index.json": [
+          "model-00001-of-00004.safetensors",
+          "model-00002-of-00004.safetensors",
+          "model-00003-of-00004.safetensors",
+          "model-00004-of-00004.safetensors"
+        ]
+      }
+    },
+    "i2i": {
+      "repo_id": "darrellbest/Qwen-Image-2.1-PE-I2I-Heretic",
+      "revision": "0402e068524500b29633ccc4f85b90779fe73092",
+      "files": {
+        "LICENSE": {
+          "size": 7831,
+          "sha256": "8dc973f024ff95966bea25866efa443fd16776dcb1001e681e3d467ea572b28d"
+        },
+        "chat_template.jinja": {
+          "size": 7756,
+          "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715"
+        },
+        "config.json": {
+          "size": 2952,
+          "sha256": "363a16bf2b705fa95a50debb0d420c6427746b7ad4d33087f117288af2dd919c"
+        },
+        "generation_config.json": {
+          "size": 179,
+          "sha256": "7c06d44ace6c45a1edeccda7d1ceb5bbf37fbe051cfb07aede00da54c27cc9ab"
+        },
+        "model-00001-of-00004.safetensors": {
+          "size": 4942706120,
+          "sha256": "ec58254a4434ea277470689209a27618b66ff4caaa387632758b35e903070396"
+        },
+        "model-00002-of-00004.safetensors": {
+          "size": 4987757928,
+          "sha256": "0a0fc6ec092471f2751cb716f0c33e77f0471f50405836306559e990ad31c838"
+        },
+        "model-00003-of-00004.safetensors": {
+          "size": 4954810240,
+          "sha256": "d4e4e6509cf3da9fd482af3da20b40a0d2c671f4014e538557c5c31b5a842968"
+        },
+        "model-00004-of-00004.safetensors": {
+          "size": 3934446832,
+          "sha256": "5ed0118fbba649f9dd40b344bc17c39bdcba0ea6d094218b4781a276c990e850"
+        },
+        "model.safetensors.index.json": {
+          "size": 69253,
+          "sha256": "941305ff9f77551e145a6cea976ef456cd5cb208cbece99f168376c752fcf96c"
+        },
+        "processor_config.json": {
+          "size": 1327,
+          "sha256": "29dc1f7d9428359756d7cde10de988fa36fccca26a88a40af0f9555f977b3619"
+        },
+        "system_prompt.txt": {
+          "size": 18344,
+          "sha256": "e378fea686a1431581ba4c654d332ae96adad633f144ae738ec8ce9c4fd66439"
+        },
+        "tokenizer.json": {
+          "size": 19989343,
+          "sha256": "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4"
+        },
+        "tokenizer_config.json": {
+          "size": 1195,
+          "sha256": "d31e4f848da45ecf70ec28e51f680f96222e74217570d6a74d3c823a6f669f37"
+        }
+      },
+      "indexes": {
+        "model.safetensors.index.json": [
+          "model-00001-of-00004.safetensors",
+          "model-00002-of-00004.safetensors",
+          "model-00003-of-00004.safetensors",
+          "model-00004-of-00004.safetensors"
+        ]
+      }
+    }
+  }
+}
