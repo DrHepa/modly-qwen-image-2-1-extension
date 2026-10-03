@@ -170,10 +170,10 @@ class QwenImage21Generator(BaseGenerator):
             key = 'i2i' if node.startswith('edit') else 't2i'
             self._verifier.verify(self.model_dir / 'prompt_enhancer', self._lock['components'][key],
                                   self._log, lambda: self._check_cancelled(cancel_event))
-        self._log('Shared image checkpoint and required node-private assets match their pinned SHA256 digests.')
+        self._log('Checkpoint paths, sizes, shard indexes, and loader-visible file sets passed fast readiness checks; content hashes were not checked.')
 
     def is_downloaded(self):
-        # Cheap readiness; construction always performs cryptographic validation.
+        # Host readiness checks file presence and exact sizes without reading weights.
         node = self._node()
         try:
             image_root = self._image_root()
@@ -259,6 +259,17 @@ class QwenImage21Generator(BaseGenerator):
             raise RuntimeError('This pinned runtime requires a CUDA device with BF16 support.')
         return torch
 
+    def _check_runtime(self):
+        """Fail on missing runtime support before walking assets or loading weights."""
+        try:
+            self._torch()
+        except (ImportError, OSError) as exc:
+            raise RuntimeError('Torch is unavailable in this extension venv. Run Modly Repair.') from exc
+        required = ('diffusers', 'transformers') if self._node().endswith('-enhanced') else ('diffusers',)
+        for name in required:
+            if (name in sys.modules and sys.modules[name] is None) or (name not in sys.modules and importlib.util.find_spec(name) is None):
+                raise RuntimeError(f'{name} is unavailable in this extension venv. Run Modly Repair.')
+
     def _load_image(self, memory_mode='offload', cancel_event=None):
         image_root = self._image_root()
         if self._model is not None and self._memory_mode == memory_mode: return
@@ -310,6 +321,8 @@ class QwenImage21Generator(BaseGenerator):
         if self.is_loaded() and self._loaded_node == self._node(): return
         try:
             self.unload()
+            self._image_root()  # Report a missing host mapping before checking dependencies.
+            self._check_runtime()
             self._validate_assets()
             if self._node().endswith('-enhanced'): self._load_enhancer()
             else: self._load_image()
@@ -498,7 +511,9 @@ class QwenImage21Generator(BaseGenerator):
             p = self._parameters(params)
             references = self._references(image_bytes, params)
             if self._loaded_node is not None and self._loaded_node != self._node(): self.unload()
-            report(3, 'Validating complete pinned checkpoint assets')
+            if self._model is None or (self._node().endswith('-enhanced') and self._enhancer is None):
+                self._check_runtime()
+            report(3, 'Checking local checkpoint readiness')
             self._validate_assets(cancel_event)
             prompt = p['prompt']
             enhanced = None

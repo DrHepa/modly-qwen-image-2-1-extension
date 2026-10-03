@@ -1,7 +1,6 @@
-"""Pinned, local-only checkpoint validation. Own integration code: MIT."""
+"""Fast, local-only checkpoint readiness checks. Own integration code: MIT."""
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -13,18 +12,11 @@ class AssetError(RuntimeError):
 
 
 class AssetVerifier:
-    """Verify hashes once per unchanged file identity in this process.
+    """Check path safety, exact sizes, index mappings, and loader-visible closure.
 
-    No persistent trust marker: a new runner must hash every tensor once. The
-    cache includes device/inode/size/mtime/ctime and expected digest. Any changed
-    metadata invalidates it. This protects accidental drift, not a hostile OS.
+    Weight payloads are never read here. Equal-size corruption or snapshot drift
+    is not detected; model loading can still fail on malformed checkpoint data.
     """
-    def __init__(self):
-        self._verified = set()
-
-    @staticmethod
-    def _identity(s):
-        return (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
 
     @staticmethod
     def _path(root, name):
@@ -38,21 +30,6 @@ class AssetVerifier:
             if current.is_symlink():
                 raise AssetError(f'Checkpoint symlink is not allowed: {current}')
         return current
-
-    def _digest(self, path, cancel=None):
-        flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
-        fd = os.open(path, flags)
-        with os.fdopen(fd, 'rb') as stream:
-            before = self._identity(os.fstat(stream.fileno()))
-            h = hashlib.sha256()
-            while True:
-                if cancel: cancel()
-                block = stream.read(8 * 1024 * 1024)
-                if not block: break
-                h.update(block)
-            if self._identity(os.fstat(stream.fileno())) != before:
-                raise AssetError(f'Checkpoint changed while hashing: {path}')
-        return h.hexdigest(), before
 
     def _validate_closure(self, root, files, managed_subdirs):
         # The local loaders can prefer alternate weights/configs over a checked
@@ -87,24 +64,16 @@ class AssetVerifier:
                 raise AssetError(f'Checkpoint root has a symlink ancestor: {ancestor}')
         files = component['files']
         self._validate_closure(root, files, managed_subdirs)
-        for index, (name, expected) in enumerate(files.items(), 1):
+        for name, expected in files.items():
             if cancel: cancel()
             path = self._path(root, name)
-            try: info = path.stat()
+            try: info = path.lstat()
             except FileNotFoundError as exc:
                 raise AssetError(f'Missing checkpoint file {path}. Download this node in Modly Models; setup does not download weights.') from exc
+            if stat.S_ISLNK(info.st_mode):
+                raise AssetError(f'Checkpoint symlink is not allowed: {path}')
             if not stat.S_ISREG(info.st_mode) or info.st_size != expected['size']:
                 raise AssetError(f'Checkpoint size mismatch: {path} (expected {expected["size"]}, found {info.st_size}). Repair the Models download.')
-            identity = self._identity(info)
-            key = (str(path), identity, expected['sha256'])
-            if key not in self._verified:
-                if log: log(f'Validating asset {index}/{len(files)}: {name} ({info.st_size:,} bytes)')
-                digest, hashed_identity = self._digest(path, cancel)
-                if digest != expected['sha256']:
-                    raise AssetError(f'Checkpoint version drift or corruption: {path}. Expected pinned {component["repo_id"]}@{component["revision"]}; SHA256 mismatch. Redownload the supported snapshot from Models. Stable upstream cannot pin revisions; use a modern host if its main snapshot changed.')
-                if identity != hashed_identity or self._identity(path.stat()) != identity:
-                    raise AssetError(f'Checkpoint changed during validation: {path}')
-                self._verified.add(key)
         for index_name, expected_shards in component.get('indexes', {}).items():
             index_path = self._path(root, index_name)
             try:

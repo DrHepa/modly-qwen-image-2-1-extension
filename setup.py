@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import traceback
+import uuid
 
 ROOT = Path(__file__).resolve().parent
 DIFFUSERS_REVISION = 'e0abab83b5df05de9e7abd788643c1a7c1e42e28'
@@ -101,13 +102,9 @@ def inspect_python(python):
     return json.loads(capture([python, '-c', 'import json,sys,platform; print(json.dumps({"version":list(sys.version_info[:2]),"system":platform.system(),"machine":platform.machine(),"implementation":platform.python_implementation(),"prefix":sys.prefix,"base_prefix":sys.base_prefix}))']))
 
 
-def validate_venv(venv, python):
-    """Prove the intended environment boundary before any pip invocation.
-
-    Standard bin/python symlinks to a base interpreter remain valid. The root,
-    configuration and interpreter-reported prefix establish ownership instead.
-    """
-    venv, python = Path(venv), Path(python)
+def validate_venv_config(venv):
+    """Check ownership and isolation without executing a possibly broken interpreter."""
+    venv = Path(venv)
     if venv.is_symlink(): raise RuntimeError(f'Refusing symlinked venv root: {venv}. Repair will not modify an external environment.')
     if not venv.is_dir(): raise RuntimeError(f'Extension venv was not created as a directory: {venv}')
     config = venv / 'pyvenv.cfg'
@@ -119,6 +116,16 @@ def validate_venv(venv, python):
         if separator: values[key.strip().lower()] = value.strip()
     if not values.get('home') or values.get('include-system-site-packages', '').lower() != 'false':
         raise RuntimeError(f'Invalid or non-isolated pyvenv.cfg: {config}. Repair will not install into it.')
+
+
+def validate_venv(venv, python):
+    """Prove the intended environment boundary before any pip invocation.
+
+    Standard bin/python symlinks to a base interpreter remain valid. The root,
+    configuration and interpreter-reported prefix establish ownership instead.
+    """
+    venv, python = Path(venv), Path(python)
+    validate_venv_config(venv)
     try:
         info = inspect_python(python)
     except (OSError, subprocess.SubprocessError, ValueError) as exc:
@@ -131,6 +138,13 @@ def validate_venv(venv, python):
 
 def interpreter_abi(info):
     return {key: info[key] for key in ('version', 'system', 'machine', 'implementation')}
+
+
+def preserve_incompatible_venv(venv):
+    backup = ROOT / ('venv.incompatible-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%f') + '-' + uuid.uuid4().hex)
+    log(f'Preserving incompatible venv as {backup.name}; model directories are not touched.')
+    venv.rename(backup)
+    return backup
 
 
 VERIFY = r'''
@@ -176,11 +190,14 @@ def main(argv=None):
     env.setdefault('PIP_RETRIES', '8')
     env['PYTHONUNBUFFERED'] = '1'
     if venv.exists() or venv.is_symlink():
-        previous = validate_venv(venv, python)
-        if interpreter_abi(previous) != interpreter_abi(selected):
-            backup = ROOT / ('venv.incompatible-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%f'))
-            log(f'Preserving incompatible venv as {backup.name}; model directories are not touched.')
-            venv.rename(backup)
+        validate_venv_config(venv)
+        if python.is_symlink() and not python.exists():
+            log('The owned venv interpreter symlink is dangling; its previous base Python was removed.')
+            preserve_incompatible_venv(venv)
+        else:
+            previous = validate_venv(venv, python)
+            if interpreter_abi(previous) != interpreter_abi(selected):
+                preserve_incompatible_venv(venv)
     if not python.is_file():
         log('Creating extension-owned venv.')
         run([payload['python_exe'], '-m', 'venv', str(venv)], env)

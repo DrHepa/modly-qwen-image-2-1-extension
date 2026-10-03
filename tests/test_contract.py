@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 import sys
@@ -32,6 +33,7 @@ from PIL import Image
 from assets import AssetVerifier, AssetError
 from generator import QwenImage21Generator, DEFAULTS, parse_enhancement, PresencePenalty
 from package_extension import package_extension
+import package_extension as package_module
 spec = importlib.util.spec_from_file_location('extension_setup', ROOT / 'setup.py')
 setup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(setup)
@@ -44,7 +46,7 @@ def png(color=(1, 2, 3, 4)):
 class ContractTests(unittest.TestCase):
     def test_enhanced_nodes_expose_fast_default_and_explicit_thinking(self):
         manifest = json.loads((ROOT / 'manifest.json').read_text())
-        self.assertEqual(manifest['version'], '0.3.2')
+        self.assertEqual(manifest['version'], '0.3.3')
         for node in manifest['nodes']:
             params = {p['id']: p for p in node['params_schema']}
             if node['id'].endswith('-enhanced'):
@@ -84,6 +86,22 @@ class ContractTests(unittest.TestCase):
             self.assertEqual(json.loads((out / 'manifest.json').read_text()), m)
             self.assertEqual((ROOT / 'generator.py').read_bytes(), (out / 'generator.py').read_bytes())
             with self.assertRaises(FileExistsError): package_extension('modern', out)
+
+    def test_preserved_venv_is_ignored_and_never_packaged(self):
+        self.assertIn('venv.incompatible-*/', (ROOT / '.gitignore').read_text().splitlines())
+        with tempfile.TemporaryDirectory() as d:
+            source, output = Path(d) / 'source', Path(d) / 'package'
+            source.mkdir()
+            for name in package_module.SHIP_FILES:
+                (source / name).write_bytes((ROOT / name).read_bytes())
+            shutil.copytree(ROOT / 'licenses', source / 'licenses')
+            backup = source / 'venv.incompatible-test' / 'bin'
+            backup.mkdir(parents=True)
+            (backup / 'python').write_bytes(b'legacy environment fixture')
+            with patch.object(package_module, 'ROOT', source):
+                package_extension('modern', output)
+            self.assertFalse((output / 'venv.incompatible-test').exists())
+            self.assertFalse((output / 'venv').exists())
 
     def test_both_edit_reference_contracts_preserve_named_handles_and_labels(self):
         manifest = json.loads((ROOT / 'manifest.json').read_text())
@@ -177,24 +195,26 @@ class AssetTests(unittest.TestCase):
         self.component = {'revision': 'a' * 40, 'repo_id': 'test/fixture', 'files': {'one.bin': {'size': len(self.data), 'sha256': hashlib.sha256(self.data).hexdigest()}}, 'indexes': {}}
         self.v = AssetVerifier()
     def tearDown(self): self.tmp.cleanup()
-    def test_missing_truncated_mismatch_and_repair(self):
+    def test_missing_truncated_and_same_size_limit(self):
         self.v.verify(self.root, self.component)
         (self.root / 'one.bin').write_bytes(b'x')
         with self.assertRaisesRegex(AssetError, 'size'): self.v.verify(self.root, self.component)
         (self.root / 'one.bin').write_bytes(b'x' * len(self.data))
-        with self.assertRaisesRegex(AssetError, 'version drift'): self.v.verify(self.root, self.component)
+        self.assertTrue(self.v.verify(self.root, self.component))  # Equal-size drift needs an external hash check.
         (self.root / 'one.bin').unlink()
         with self.assertRaisesRegex(AssetError, 'Models'): self.v.verify(self.root, self.component)
     def test_symlink_escape(self):
         (self.root / 'one.bin').unlink()
         (self.root / 'one.bin').symlink_to('/etc/passwd')
         with self.assertRaisesRegex(AssetError, 'symlink'): self.v.verify(self.root, self.component)
-    def test_verified_stat_cache_only(self):
-        self.v.verify(self.root, self.component)
-        with patch.object(self.v, '_digest', side_effect=AssertionError('rehashed unchanged file')):
-            self.v.verify(self.root, self.component)
-        (self.root / 'one.bin').write_bytes(b'z' * len(self.data))
-        with self.assertRaises(AssetError): self.v.verify(self.root, self.component)
+    def test_weight_payload_is_never_opened_or_hashed(self):
+        logs = []
+        with patch('builtins.open', side_effect=AssertionError('payload opened')), \
+             patch('assets.os.open', side_effect=AssertionError('payload opened')), \
+             patch.object(Path, 'open', side_effect=AssertionError('payload opened')):
+            self.assertTrue(self.v.verify(self.root, self.component, log=logs.append))
+        self.assertEqual(logs, [])
+        self.assertFalse(hasattr(self.v, '_digest'))
     def test_index_references_must_be_locked(self):
         data = json.dumps({'weight_map': {'weight': 'unlocked.safetensors'}}).encode()
         (self.root / 'idx.json').write_bytes(data)
@@ -311,7 +331,7 @@ class GeneratorTests(unittest.TestCase):
         self.assertTrue(pipe.cleaned)
     def test_enhancer_failure_never_runs_image_model(self):
         self.g.node_id = 'generate-enhanced'
-        with patch.object(self.g, '_validate_assets'), patch.object(self.g, '_enhance', side_effect=ValueError('invalid JSON')), patch.object(self.g, '_load_image') as main:
+        with patch.object(self.g, '_check_runtime'), patch.object(self.g, '_validate_assets'), patch.object(self.g, '_enhance', side_effect=ValueError('invalid JSON')), patch.object(self.g, '_load_image') as main:
             with self.assertRaisesRegex(ValueError, 'invalid JSON'): self.g.generate(b'', {'prompt': 'portrait'})
             main.assert_not_called()
     def test_ten_references_reach_pipeline_in_order(self):

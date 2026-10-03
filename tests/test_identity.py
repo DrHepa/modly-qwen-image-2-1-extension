@@ -27,7 +27,7 @@ class RenamedIdentityTests(unittest.TestCase):
     def test_manifest_and_generator_use_one_generic_image_identity(self):
         manifest = json.loads((ROOT / 'manifest.json').read_text())
         self.assertEqual((manifest['id'], manifest['name'], manifest['version'], manifest['source']),
-                         (EXTENSION_ID, 'Qwen Image 2.1', '0.3.2', 'https://github.com/DrHepa/modly-qwen-image-2-1-extension'))
+                         (EXTENSION_ID, 'Qwen Image 2.1', '0.3.3', 'https://github.com/DrHepa/modly-qwen-image-2-1-extension'))
         self.assertEqual(manifest['generator_class'], 'QwenImage21Generator')
         self.assertEqual([node['id'] for node in manifest['nodes']], list(NODES))
         self.assertEqual((c.QwenImage21Generator.MODEL_ID, c.QwenImage21Generator.DISPLAY_NAME),

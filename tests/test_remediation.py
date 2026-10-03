@@ -286,7 +286,7 @@ class ClosureTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'Unexpected unverified checkpoint file'):
             generator._validate_assets()
 
-    def test_cached_verification_still_rejects_new_shadow_file(self):
+    def test_repeated_readiness_check_still_rejects_new_shadow_file(self):
         verifier = c.AssetVerifier(); verifier.verify(self.root,self.component)
         (self.root/'model.safetensors').write_bytes(b'unverified')
         with self.assertRaises(c.AssetError): verifier.verify(self.root,self.component)
@@ -305,6 +305,43 @@ class VenvOwnershipTests(unittest.TestCase):
         with patch.object(c.setup,'ROOT',self.root),patch.object(c.setup,'probe_gpu',return_value=(121,130)),patch.object(c.setup,'run') as run:
             with self.assertRaisesRegex(RuntimeError,'symlink'):c.setup.main(['setup.py',json.dumps(self.payload)])
             run.assert_not_called()
+
+    def test_dangling_legacy_interpreter_is_preserved_before_cp312_creation(self):
+        venv=self.root/'venv';(venv/'bin').mkdir(parents=True)
+        (venv/'pyvenv.cfg').write_text('home = /removed/python3.11\ninclude-system-site-packages = false\n')
+        (venv/'bin'/'python').symlink_to('/removed/python3.11')
+        weights=self.root/'weights.keep';weights.write_bytes(b'untouched')
+        selected={**c.setup.inspect_python(sys.executable),'version':[3,12]}
+        owned={**selected,'prefix':str(venv),'base_prefix':selected['base_prefix']}
+        commands=[]
+        def inspect(path):return owned if Path(path)==venv/'bin'/'python' else selected
+        def run(args,env):
+            commands.append(args)
+            if args[1:3]==['-m','venv']:
+                (venv/'bin').mkdir(parents=True)
+                (venv/'pyvenv.cfg').write_text(f'home = {Path(sys.executable).parent}\ninclude-system-site-packages = false\n')
+                (venv/'bin'/'python').symlink_to(sys.executable)
+        with patch.object(c.setup,'ROOT',self.root),patch.object(c.setup,'probe_gpu',return_value=(121,130)), \
+             patch.object(c.setup,'inspect_python',side_effect=inspect),patch.object(c.setup,'run',side_effect=run):
+            self.assertEqual(c.setup.main(['setup.py',json.dumps(self.payload)]),0)
+        backups=list(self.root.glob('venv.incompatible-*'))
+        self.assertEqual(len(backups),1)
+        self.assertTrue((backups[0]/'bin'/'python').is_symlink())
+        self.assertFalse((backups[0]/'bin'/'python').exists())
+        self.assertEqual(weights.read_bytes(),b'untouched')
+        self.assertEqual(commands[0][1:3],['-m','venv'])
+        self.assertTrue(all(str(backups[0]) not in str(command) for command in commands))
+
+    def test_symlinked_config_is_not_preserved_or_replaced(self):
+        venv=self.root/'venv';(venv/'bin').mkdir(parents=True)
+        outside=self.root/'external.cfg';outside.write_text('home = /removed/python3.11\ninclude-system-site-packages = false\n')
+        (venv/'pyvenv.cfg').symlink_to(outside)
+        (venv/'bin'/'python').symlink_to('/removed/python3.11')
+        with patch.object(c.setup,'ROOT',self.root),patch.object(c.setup,'probe_gpu',return_value=(121,130)),patch.object(c.setup,'run') as run:
+            with self.assertRaisesRegex(RuntimeError,'pyvenv.cfg'):c.setup.main(['setup.py',json.dumps(self.payload)])
+            run.assert_not_called()
+        self.assertTrue(venv.exists())
+        self.assertEqual(list(self.root.glob('venv.incompatible-*')),[])
 
     def test_missing_config_and_nonvenv_prefix_rejected(self):
         venv=self.root/'venv';(venv/'bin').mkdir(parents=True);python=venv/'bin'/'python';python.symlink_to(sys.executable)

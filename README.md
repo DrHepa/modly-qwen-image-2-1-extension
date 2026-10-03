@@ -1,4 +1,4 @@
-# Qwen Image 2.1 for Modly — 0.3.2
+# Qwen Image 2.1 for Modly — 0.3.3
 
 A **type: model** extension for local image generation and editing powered by
 **Qwen Image 2.1**, with up to ten ordered references and optional **community
@@ -10,7 +10,7 @@ Reduced-refusal does not mean guaranteed uncensored, official, or quality-equiva
 ## Status and required host capability
 
 This extension uses **one shared main checkpoint** and **two distinct
-node-private prompt-enhancer checkpoints**. Version 0.3.2 requires native
+node-private prompt-enhancer checkpoints**. Version 0.3.3 requires native
 `weight_groups` and host-injected `shared_model_dirs`; it does not duplicate
 main weights or reconstruct sibling paths as a fallback.
 
@@ -23,9 +23,10 @@ shared-weight and multi-image input contracts; a compiled app or branch name
 alone is not proof of its runtime behavior.
 
 CPU/mock and parser tests establish source-level behavior, not real inference.
-An exact-version 0.3.2 **backend** enhanced-edit run on a compatible non-upstream
-host encoded ten references and produced a verified PNG. Earlier runs of the
-other three modes used an older extension version, so they do not qualify 0.3.2.
+Version 0.3.3 has not undergone real inference. An exact-version 0.3.2
+**backend** enhanced-edit run on a compatible non-upstream host encoded ten
+references and produced a verified PNG; that earlier result does not qualify
+0.3.3. The other three modes have only older-version run evidence.
 No UI-initiated Run, stock-upstream inference, GitHub installation, full
 lifecycle/cancellation test, or perceptual-quality assessment has been completed.
 
@@ -80,13 +81,14 @@ install a parent directory containing a nested extension folder.
 2. In **Models**, download only the node(s) you need.
 3. Wait for all model sources to finish. A sentinel config file alone is not a
    complete checkpoint.
-4. Connect text or images, enter a prompt, and generate. The first load hashes
-   all checkpoint payloads before constructing any model. Unlisted checkpoint files
-(including alternate weights, indexes, configs and adapters) or any symlinks are
-rejected to prevent loader shadowing. Only regular `<locked filename>.part`
-resume sidecars are allowed; the enhanced node's `prompt_enhancer/` subtree is
-verified independently against its own complete lock. No unexpected files are
-deleted automatically.
+4. Connect text or images, enter a prompt, and generate. Runtime first checks
+   Torch/CUDA and required packages, then checks checkpoint paths, exact file
+   sizes, shard indexes, and the complete loader-visible file set. It does **not**
+   stream or hash weight payloads on load or generation. Unlisted files (including
+   alternate weights, indexes, configs and adapters) or any symlinks are rejected
+   to prevent loader shadowing. Only regular `<locked filename>.part` resume
+   sidecars are allowed; each enhanced node checks its own `prompt_enhancer/`
+   subtree separately. No unexpected files are deleted automatically.
 
 The host still injects the exact node-private `MODEL_DIR`, normally
 `<MODELS_DIR>/qwen-image-2-1/<node-id>/`, and separately injects the
@@ -115,10 +117,14 @@ A missing/malformed shared mapping fails with an actionable host-capability erro
 | **All checkpoints together** | **70,811,239,607** |
 
 This is about 70.81 decimal GB for all weights. Allow extra space for the venv,
-pip cache, host download sidecars and outputs. Full file hashes, sizes, shard
-indexes and immutable revisions remain in `assets.lock.json`; no payload is
-included in this repository. The main root and each PE root have separate strict
-closure checks: an unexpected PE subtree inside the shared main is rejected.
+pip cache, host download sidecars and outputs. File hashes and immutable
+revisions remain in `assets.lock.json` as reference metadata, but runtime checks
+only paths, exact sizes, shard indexes and file-set closure. Equal-size corruption
+or snapshot drift is **not** detected by this fast check; perform a separate
+offline hash audit or redownload from Models when integrity is in doubt. No
+payload is included in this repository. The main root and each PE root have
+separate strict closure checks: an unexpected PE subtree inside the shared main
+is rejected.
 
 ### Shared-weight lifecycle caution
 
@@ -159,7 +165,12 @@ interpreter/platform information, probes NVIDIA driver/compute capability, and
 uses pinned Torch 2.11.0 + torchvision 0.26.0 CUDA 13.0 wheels. Current Modly
 reports CUDA 12.8 even for newer drivers; verified driver 580+ evidence is used
 to correct that stale hint without changing the host. Incompatible venvs are
-renamed for preservation, not deleted. Required package failures stop setup.
+renamed for preservation, not deleted. An owned, isolated legacy venv with a
+dangling interpreter symlink (for example after removing Python 3.11) is also
+preserved as `venv.incompatible-*` before creating the selected interpreter's
+venv; suspicious roots/configs still fail closed. Preserved backups are excluded
+from Git and the packaged extension, but retain their local disk usage. Required
+package failures stop setup.
 
 Candidate targets are CPython **3.11 or 3.12**, Linux ARM64/x64 or Windows x64, NVIDIA
 SM80+ with a CUDA-13-capable driver. Linux ARM64 cu130 CP311/CP312 wheel hashes are pinned. Runtime qualification remains platform-specific.
@@ -216,7 +227,7 @@ OOM. Start with one small base-generation smoke, then qualify larger tasks.
 
 ## Troubleshooting
 
-Host stderr logs identify integrity validation, actual model construction,
+Host stderr logs identify fast checkpoint readiness checks, actual model construction,
 enhancer tokens, text/reference encoding, denoising step N/N, decoding and atomic
 PNG saving. Errors retain full tracebacks. Progress percentages never decrease,
 but are stage indicators, not time estimates. Check cancellation between stages,
@@ -243,13 +254,14 @@ python3 -m unittest discover -s tests -v
 python3 -m compileall -q generator.py assets.py setup.py package_extension.py
 ```
 
-CPU tests cover late shared-map injection, no-fallback failures, separate main/PE
-closure, legacy-package rejection, manifest/lock contracts, input ordering/holes/alpha,
+CPU tests cover no-payload-read readiness, broken-venv preservation, late
+shared-map injection, no-fallback failures, separate main/PE closure,
+legacy-package rejection, manifest/lock contracts, input ordering/holes/alpha,
 parameter validation, enhancement parsing, atomic saving, monotonic progress,
 mocked denoising cancellation and cleanup. These mocks do not prove inference,
 UI rendering, downloaded bytes, or Windows support. An exact 0.3.2 backend
 run qualified the enhanced edit path with ten references on a compatible
-non-upstream host only. Real-host acceptance still needs setup + Repair,
+non-upstream host only; no 0.3.3 inference has run. Real-host acceptance needs setup + Repair,
 host-managed downloads, all four modes, visible logs/errors, cancellation,
 unload/restart, UI-initiated Run and Install from GitHub.
 

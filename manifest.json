@@ -2,7 +2,7 @@
   "id": "qwen-image-2-1",
   "name": "Qwen Image 2.1",
   "type": "model",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "author": "DrHepa",
   "description": "Image generation and editing powered by Qwen Image 2.1, with optional community reduced-refusal prompt enhancement. Research-only checkpoint license.",
   "source": "https://github.com/DrHepa/modly-qwen-image-2-1-extension",

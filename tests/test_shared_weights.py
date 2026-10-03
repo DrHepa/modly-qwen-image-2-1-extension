@@ -117,17 +117,36 @@ class SharedWeightTests(unittest.TestCase):
         (pe / 'model.safetensors').write_bytes(b'shadow')
         with self.assertRaisesRegex(RuntimeError, 'Unexpected unverified checkpoint file'): self.g._validate_assets()
 
-    def test_missing_or_corrupt_pe_never_substitutes_shared_main(self):
+    def test_missing_or_wrong_size_pe_never_substitutes_shared_main(self):
         self.g.node_id = 'edit-enhanced'; self.g.shared_model_dirs = {GROUP: self.shared}
         self.g._lock['components']['i2i'] = self.main
         self.assertFalse(self.g.is_downloaded())
         with self.assertRaisesRegex(RuntimeError, 'Missing checkpoint'): self.g._validate_assets()
-        component(self.g.model_dir / 'prompt_enhancer', b'x' * self.main['files']['one.bin']['size'])
-        with self.assertRaisesRegex(RuntimeError, 'version drift'): self.g._validate_assets()
+        component(self.g.model_dir / 'prompt_enhancer', b'x')
+        with self.assertRaisesRegex(RuntimeError, 'size mismatch'): self.g._validate_assets()
+        (self.g.model_dir / 'prompt_enhancer' / 'one.bin').write_bytes(b'x' * self.main['files']['one.bin']['size'])
+        self.g._validate_assets()  # Equal-size content drift is outside fast readiness checks.
+
+    def test_runtime_preflight_precedes_asset_walk(self):
+        self.g.shared_model_dirs = {GROUP: self.shared}
+        with patch.object(self.g, '_torch', side_effect=ImportError('no torch')), \
+             patch.object(self.g, '_validate_assets') as validate:
+            with self.assertRaisesRegex(RuntimeError, 'Torch is unavailable'):
+                self.g.load()
+            validate.assert_not_called()
+
+    def test_missing_loader_dependency_precedes_asset_walk(self):
+        self.g.shared_model_dirs = {GROUP: self.shared}
+        with patch.object(self.g, '_torch'), \
+             patch('generator.importlib.util.find_spec', return_value=None), \
+             patch.object(self.g, '_validate_assets') as validate:
+            with self.assertRaisesRegex(RuntimeError, 'diffusers is unavailable'):
+                self.g.load()
+            validate.assert_not_called()
 
     def test_manifest_declares_main_once_and_exact_descriptors(self):
         manifest = json.loads((c.ROOT / 'manifest.json').read_text())
-        self.assertEqual(manifest['version'], '0.3.2')
+        self.assertEqual(manifest['version'], '0.3.3')
         groups = manifest['weight_groups']; self.assertEqual(len(groups), 1)
         self.assertEqual(groups[0]['id'], GROUP)
         main, = groups[0]['model_sources']
