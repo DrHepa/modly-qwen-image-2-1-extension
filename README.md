@@ -1,276 +1,184 @@
-# Qwen Image 2.1 for Modly — 0.3.3
+# Qwen Image 2.1 for Modly
 
-A **type: model** extension for local image generation and editing powered by
-**Qwen Image 2.1**, with up to ten ordered references and optional **community
-reduced-refusal prompt enhancement**. The adapter is MIT; model use is subject to
-the separate **Qwen Research License (non-commercial research/evaluation)**.
-Read [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) before using the checkpoints.
-Reduced-refusal does not mean guaranteed uncensored, official, or quality-equivalent.
+**Generate or edit images locally, with up to 10 ordered references.** Four nodes
+share one Qwen Image 2.1 checkpoint; two can optionally add separate community
+prompt enhancers. This is a Modly model extension, version **0.3.3**.
 
-## Status and required host capability
+> **License first:** The adapter is [MIT](LICENSE), but the model and enhancer
+> checkpoints retain the **Qwen Research License for non-commercial research and
+> evaluation**. Read [Third-party notices](THIRD_PARTY_NOTICES.md) before
+> downloading or using them. No weights are included in this repository.
 
-This extension uses **one shared main checkpoint** and **two distinct
-node-private prompt-enhancer checkpoints**. Version 0.3.3 requires native
-`weight_groups` and host-injected `shared_model_dirs`; it does not duplicate
-main weights or reconstruct sibling paths as a fallback.
+## Quick start
 
-The [shared-weights host PR #348](https://github.com/lightningpixel/modly/pull/348)
-remains unmerged. Stock upstream Modly therefore does not provide the required
-shared-weight contract. [PR #275](https://github.com/lightningpixel/modly/pull/275)
-adds multiple Hugging Face sources but does not provide shared weights on its
-own. Before installing, verify that your Modly build implements the required
-shared-weight and multi-image input contracts; a compiled app or branch name
-alone is not proof of its runtime behavior.
+1. Use **Modly 0.4.3 or newer**. Its [v0.4.3 release](https://github.com/lightningpixel/modly/releases/tag/v0.4.3)
+   includes multiple Hugging Face sources ([#275](https://github.com/lightningpixel/modly/pull/275)),
+   extension-scoped shared weight groups ([#348](https://github.com/lightningpixel/modly/pull/348)),
+   and text-only detection for multi-input models ([#205](https://github.com/lightningpixel/modly/pull/205))
+   needed here. An older host may reject the manifest or fail to inject shared
+   model paths.
+2. In **Models/Extensions → Install from GitHub**, enter
+   `https://github.com/DrHepa/modly-qwen-image-2-1-extension`. Run **Repair** if
+   Modly requests environment setup or an existing environment is incompatible.
+3. In **Models**, download the node you want to use and wait for all its managed
+   sources to finish. Base nodes need the shared image checkpoint; enhanced
+   nodes also need their own prompt enhancer.
+4. Add the node to a workflow, connect its input, enter a prompt, and run it.
+   Start with one reference and modest dimensions before scaling up.
 
-CPU/mock and parser tests establish source-level behavior, not real inference.
-Version 0.3.3 has not undergone real inference. An exact-version 0.3.2
-**backend** enhanced-edit run on a compatible non-upstream host encoded ten
-references and produced a verified PNG; that earlier result does not qualify
-0.3.3. The other three modes have only older-version run evidence.
-No UI-initiated Run, stock-upstream inference, GitHub installation, full
-lifecycle/cancellation test, or perceptual-quality assessment has been completed.
+Installing from a local folder only links/reloads the extension; it does **not**
+run `setup.py`. Use **Repair** for that route. Install the repository root, not a
+parent directory containing it.
 
-## Usage
+## Choose a node
 
-### Nodes
+| Node | Input | Additional checkpoint | Output |
+| --- | --- | --- | --- |
+| **Generate Image** (`generate`) | Text prompt | None | PNG |
+| **Edit Image — 10 References** (`edit`) | Prompt + 1–10 images | None | PNG |
+| **Generate Image — Enhanced Prompt** (`generate-enhanced`) | Text prompt | Community T2I enhancer | PNG |
+| **Edit Image — Enhanced Prompt** (`edit-enhanced`) | Prompt + 1–10 images | Community I2I enhancer | PNG |
 
-| Node ID | Input | Checkpoints | Output |
-|---|---|---|---|
-| `generate` | text | image model | PNG |
-| `edit` | 1–10 image references + prompt | image model | PNG |
-| `generate-enhanced` | text | image model + community T2I PE | PNG |
-| `edit-enhanced` | 1–10 image references + prompt | image model + community I2I PE | PNG |
+The base nodes send your prompt directly to the image pipeline. The enhanced
+nodes first rewrite it with their respective **community reduced-refusal**
+enhancer. These are not official Qwen releases: reduced refusal, a particular
+content policy, and equivalent image quality are **not guaranteed**. A text node
+does not implicitly receive images; use an Edit node for references.
 
-Use a base node for direct prompting and complete enhancer bypass. Enhanced nodes
-require both checkpoints to be downloaded. Original and effective prompts, exact
-parameters and reference count are stored in PNG text metadata; prompts are not
-printed in logs. Share PNGs carefully if prompt text is private.
+### Ordered image references
 
-The edit nodes expose Reference 1 through Reference 10. The first is required;
-connect up to nine additional inputs in order. Connected images are compacted in
-port order: if slot 2 is unused, connected slot 3 becomes `<image2>`. Logs show the
-slot-to-effective-image mapping. Refer to effective images as `<image1>`, etc.
-No primary-image duplication is added. Alpha is preserved for the image pipeline;
-the enhancer sees a white-composited RGB copy. Relative extra paths resolve from
-the runner's `WORKSPACE_DIR`, never from a selected output collection.
+Edit nodes expose **Reference 1** through **Reference 10**. Connect Reference 1
+explicitly; References 2–10 are optional. The pipeline compacts connected slots
+in port order, so if Reference 2 is empty but Reference 3 is connected, the latter
+becomes `<image2>` in the prompt. The log reports that mapping. There is no
+automatic duplication of Reference 1. The required-port indicator is UI
+metadata, not a substitute for an actual graph connection; otherwise the host
+may fall back to its globally selected image.
 
-On a compatible host, `input_contract` supplies the reference labels and nine
-optional indicators without changing the `image`, `image_2`, ... `image_10`
-handles. Required flags are UI metadata: model preflight checks input types,
-not each required port. Always connect the first slot explicitly; a host may
-otherwise use its globally selected image. The manifest also retains
-`input_labels` for hosts that ignore `input_contract`. This fallback does not
-guarantee a first-slot graph edge.
+Connected alpha is preserved for the image pipeline. The enhancer receives a
+white-composited RGB view. Original/effective prompts, parameters, and reference
+count are stored in PNG metadata, **not printed in logs**; treat shared PNGs as
+potentially containing private prompt text.
 
-Text nodes ignore the host's dummy image and send no image references. Use an
-edit node when references are needed; a text node cannot receive them implicitly.
+### Useful defaults
 
-## Installation and managed checkpoints
+Output is **1024 × 1024**, with **40 steps**, **seed 42**, true CFG **1**, KV
+cache enabled, BF16 SDPA, and CPU model offload. Width, height, and reference
+processing resolution must be multiples of 32. Negative prompt affects the
+result only when true CFG is above 1. A seed does not promise bitwise-identical
+results across hardware.
 
-Once the repository is available, use **Models/Extensions → Install from GitHub**
-with `https://github.com/DrHepa/modly-qwen-image-2-1-extension`. This GitHub installation route has not yet been qualified;
-first confirm that your Modly build supports the required shared-weight contract.
-A source URL is not a claim of upstream compatibility or a release.
+Enhanced nodes default to **thinking Off** and a **4096-token** enhancer budget.
+Thinking On may take longer; neither mode guarantees better quality or a
+completion time. Incomplete or invalid structured enhancer output fails
+explicitly instead of silently falling back to the raw prompt. The enhancer's
+aspect suggestion never overrides your width or height. Use a base node if you
+want to bypass enhancement entirely.
 
-For local development, place the repository root under the Modly extension
-runtime directory, reload extensions, then use **Repair**. A local-folder link
-alone does not run setup. The required files are at the repository root; do not
-install a parent directory containing a nested extension folder.
+## Managed weights and storage
 
-1. Install/Repair the extension environment.
-2. In **Models**, download only the node(s) you need.
-3. Wait for all model sources to finish. A sentinel config file alone is not a
-   complete checkpoint.
-4. Connect text or images, enter a prompt, and generate. Runtime first checks
-   Torch/CUDA and required packages, then checks checkpoint paths, exact file
-   sizes, shard indexes, and the complete loader-visible file set. It does **not**
-   stream or hash weight payloads on load or generation. Unlisted files (including
-   alternate weights, indexes, configs and adapters) or any symlinks are rejected
-   to prevent loader shadowing. Only regular `<locked filename>.part` resume
-   sidecars are allowed; each enhanced node checks its own `prompt_enhancer/`
-   subtree separately. No unexpected files are deleted automatically.
-
-The host still injects the exact node-private `MODEL_DIR`, normally
-`<MODELS_DIR>/qwen-image-2-1/<node-id>/`, and separately injects the
-shared main directory through `shared_model_dirs["qwen-image-2-1"]` (serialized
-as `SHARED_MODEL_DIRS` for subprocess runners). The layout is:
+The host downloads the main checkpoint **once** as a shared weight group used
+by all four nodes. Each enhanced node has its own distinct private checkpoint:
 
 ```text
 <MODELS_DIR>/qwen-image-2-1/
-  _shared/qwen-image-2-1/                    # one main checkpoint, 25 files
-  generate-enhanced/prompt_enhancer/         # distinct T2I PE, 13 files
-  edit-enhanced/prompt_enhancer/             # distinct I2I PE, 13 files
+  _shared/qwen-image-2-1/                    # Qwen image model; all four nodes
+  generate-enhanced/prompt_enhancer/         # community T2I enhancer
+  edit-enhanced/prompt_enhancer/             # community I2I enhancer
 ```
 
-All four nodes reference the same native shared group. Base nodes have no private
-source plan. Each enhanced node adds only its matching PE source. Downloading
-another node skips the already-complete shared main checkpoint; the two PE
-checkpoints are distinct and must not replace each other. Setup never downloads
-weights; load/generate use only explicit injected local roots, not a global cache.
-A missing/malformed shared mapping fails with an actionable host-capability error.
+| Download | Approximate decimal size |
+| --- | ---: |
+| Shared image checkpoint | 33.13 GB |
+| T2I enhancer, if selected | 18.84 GB |
+| I2I enhancer, if selected | 18.84 GB |
+| **All three** | **70.81 GB** |
 
-| Payload | Exact bytes |
-|---|---:|
-| Main, shared by all four nodes | 33,131,609,424 |
-| T2I PE, generate-enhanced only | 18,839,810,883 |
-| I2I PE, edit-enhanced only | 18,839,819,300 |
-| **All checkpoints together** | **70,811,239,607** |
+Allow additional space for the extension venv, pip cache, partial downloads,
+and PNG outputs. Setup does **not** download model weights; load/generate use
+only the host-injected local model directories, not a global model cache. Do not
+assume removing one node deletes the shared checkpoint while other nodes still
+depend on it.
 
-This is about 70.81 decimal GB for all weights. Allow extra space for the venv,
-pip cache, host download sidecars and outputs. File hashes and immutable
-revisions remain in `assets.lock.json` as reference metadata, but runtime checks
-only paths, exact sizes, shard indexes and file-set closure. Equal-size corruption
-or snapshot drift is **not** detected by this fast check; perform a separate
-offline hash audit or redownload from Models when integrity is in doubt. No
-payload is included in this repository. The main root and each PE root have
-separate strict closure checks: an unexpected PE subtree inside the shared main
-is rejected.
+Startup performs **fast path, file-size, shard-index, and file-set checks**—not
+a full SHA-256 scan of these large payloads. Unexpected files or symlinks are
+rejected. `assets.lock.json` retains hashes and pinned revisions as reference
+metadata, but **equal-size corruption is not detected** by the fast check. If
+integrity is in doubt, audit hashes offline or redownload from Models. A
+sentinel config file alone does not prove a complete download.
 
-### Shared-weight lifecycle caution
+## Requirements and limits
 
-Do not assume that removing a node or uninstalling the extension also removes
-its shared main checkpoint. Confirm your host's shared-weight deletion behavior
-before freeing storage, and never manually delete shared assets while a
-dependent node is active.
-
-### Packaging
-
-From the extension directory, choose a **new** output directory:
-
-```sh
-python3 package_extension.py --target modern --output /tmp/qwen-image-2-1-shared
-```
-
-The builder preserves the shared manifest and never rewrites source/runtime.
-`upstream-main` and any other unsupported target are rejected **before output
-creation**. It does not silently remove enhanced nodes or generate duplicate
-single-repository plans.
-
-## Requirements
-
-### Setup and platform compatibility
-
-`setup.py` accepts Modly's single JSON argument and the legacy positional form:
-
-```text
-setup.py <python_exe> <ext_dir> <gpu_sm> [cuda_version]
-```
-
-It creates/reuses exactly `venv` in the extension directory. Symlinked venv roots,
-missing/symlinked `pyvenv.cfg`, and interpreters whose `sys.prefix` is not this
-isolated venv are rejected before pip. Ownership is rechecked after creation;
-normal venv interpreter symlinks remain allowed. Damaged or unowned environments
-fail closed rather than being silently modified. It checks real
-interpreter/platform information, probes NVIDIA driver/compute capability, and
-uses pinned Torch 2.11.0 + torchvision 0.26.0 CUDA 13.0 wheels. Current Modly
-reports CUDA 12.8 even for newer drivers; verified driver 580+ evidence is used
-to correct that stale hint without changing the host. Incompatible venvs are
-renamed for preservation, not deleted. An owned, isolated legacy venv with a
-dangling interpreter symlink (for example after removing Python 3.11) is also
-preserved as `venv.incompatible-*` before creating the selected interpreter's
-venv; suspicious roots/configs still fail closed. Preserved backups are excluded
-from Git and the packaged extension, but retain their local disk usage. Required
-package failures stop setup.
-
-Candidate targets are CPython **3.11 or 3.12**, Linux ARM64/x64 or Windows x64, NVIDIA
-SM80+ with a CUDA-13-capable driver. Linux ARM64 cu130 CP311/CP312 wheel hashes are pinned. Runtime qualification remains platform-specific.
-These are installation candidates, **not hardware-support claims**. Other
-platforms (macOS/MPS, CPU, ROCm, Windows ARM64) fail explicitly. Git is required
-for the immutable Diffusers installation. PyTorch CUDA BF16 matmul and torchvision
-CUDA NMS are verified during setup; successful native checks are not inference.
-
-Runtime pins: Diffusers commit `e0abab83b5df05de9e7abd788643c1a7c1e42e28`,
-Transformers 5.17.0, tokenizers 0.23.1, huggingface-hub 1.32.0,
-safetensors 0.8.0, accelerate 1.11.0, Pillow 11.1.0. Required transitive packages
-are resolved by pip and checked with `pip check`; this is not a fully hash-locked
-transitive environment. No vLLM, FlashAttention, xformers, or compilation is used.
-The setup marker attests only to verified dependencies, not model readiness.
-
-Some dependencies may warn that `causal_conv1d` or FLA (Flash Linear Attention)
-is unavailable. These are optional acceleration paths: the supported fallback
-is correct but slower. This package neither installs them without a separately
-audited platform-specific plan nor suppresses their warnings.
-
-## Parameters
-
-Defaults match the pipeline audit: 1024×1024, 40 steps, seed 42, true CFG 1,
-KV cache enabled, BF16 SDPA and CPU model offload. Width, height and reference
-processing resolution must be multiples of 32; invalid dimensions fail instead
-of being silently rounded. Negative prompt has an effect only above true CFG 1.
-The seed is explicit; bitwise reproducibility across hardware is not promised.
-
-The enhancer emits validated structured JSON. Its aspect suggestion is recorded
-but **never overrides user width/height**. Truncated/invalid JSON, nonexistent
-image references or, with thinking enabled, incomplete thinking delimiters cause
-an actionable error. Both enhanced nodes default to **Enhancer thinking: Off**
-and a **4096-token** maximum for a faster direct JSON answer. Set thinking to
-**On** only when willing to allow slower internal reasoning; the token budget
-remains adjustable up to 32768. Off may reduce prompt quality for some requests,
-and neither mode guarantees a completion time or a particular content policy.
-In fast mode, the **first complete schema-valid JSON object wins**: generation
-stops at a periodic validation point, and any later repeated prose or JSON is
-ignored. A malformed first value or object fails explicitly; the parser never
-searches forward for a later usable object. Thinking-on still requires a closed
-`</think>` block followed by one complete JSON answer, with no trailing text.
-Increase the budget or use a base node if enhancement fails; there is no silent
-raw-text fallback. Internal thinking is never logged or saved. The image model and enhancer
-are staged sequentially to avoid keeping both in memory. Enhancers reload for
-each request after their previous memory is released.
-
-## Limitations
-
-The main payload is about 33 GB and the enhancer about 19 GB before activations.
-Ten references, large dimensions and CFG above 1 increase memory and latency.
-32 GB VRAM is planning guidance with offload, **not a measured peak requirement**;
-adequate system RAM is also required. GB10 unified memory does not guarantee no
-OOM. Start with one small base-generation smoke, then qualify larger tasks.
+- **Host:** Modly 0.4.3+ for native shared weight groups, multiple Hugging Face
+  sources, and the edit nodes' multi-image routing. Host capability in a release
+  is not proof that this exact extension has passed a fresh upstream UI run.
+- **Validated platform evidence:** the 0.3.3 environment and isolated backend
+  path ran with Modly-managed **CPython 3.12 on Linux ARM64/NVIDIA GB10**. The
+  installer also has candidate CPython 3.11/3.12 Linux x64 and Windows x64 CUDA
+  lanes; these are **not independently qualified platform claims**. NVIDIA SM80+
+  and a CUDA-13-capable driver are required by setup. CPU, macOS/MPS, ROCm, and
+  Windows ARM64 are not supported routes.
+- **Memory:** the main checkpoint is about 33 GB before activations; an enhancer
+  adds about 19 GB while in use. Offload lowers GPU residency but still requires
+  system RAM. Ten references, large images, and CFG above 1 increase memory and
+  latency. **32 GB VRAM is planning guidance, not a measured minimum or peak.**
+- **Dependencies:** setup pins Torch 2.11.0, torchvision 0.26.0, and a Diffusers
+  source revision; other direct dependencies are pinned in
+  [`requirements.txt`](requirements.txt). `causal_conv1d` and FLA are optional
+  acceleration paths; their absence uses a **correct but slower** fallback.
 
 ## Troubleshooting
 
-Host stderr logs identify fast checkpoint readiness checks, actual model construction,
-enhancer tokens, text/reference encoding, denoising step N/N, decoding and atomic
-PNG saving. Errors retain full tracebacks. Progress percentages never decrease,
-but are stage indicators, not time estimates. Check cancellation between stages,
-at token callbacks and at each denoising step. A running native kernel, weight
-load, or VAE operation may not stop immediately; the host may terminate the
-runner. In-process cancellation never returns a PNG as success. Process death
-can leave a hidden incomplete `.png.tmp` file, never a returned output; unrelated
-files are not automatically deleted on restart.
+| Symptom | What to check |
+| --- | --- |
+| Missing `shared_model_dirs` or shared checkpoint | Confirm Modly 0.4.3+, then finish the managed download in Models. A local copy in another node directory is not a substitute. |
+| Missing Torch, native symbols, or an invalid venv | Run **Repair** with the current Modly-managed Python. Setup preserves incompatible venvs rather than silently reusing or deleting them. |
+| Missing enhancer files or malformed enhancer response | Download the selected enhanced node's private checkpoint. Increase its token budget or switch to a base node; there is no silent raw-prompt fallback. |
+| Out of memory or very slow generation | Try one reference, smaller dimensions, default offload, and fewer steps. Optional kernel warnings may imply slower execution, not incorrect output. |
+| Suspected weight damage despite a readiness pass | Fast checks do not detect equal-size corruption; perform an offline hash audit or redownload. |
 
-## Outputs
+Progress reports stages, not time estimates. Cancellation is checked between
+stages, during enhancer tokens, and between denoising steps; an active native
+kernel or weight load may not stop immediately. Generated images are uniquely
+named, validated PNGs written atomically to the host output directory. A killed
+process can leave a hidden incomplete `.png.tmp` file, never a returned success.
 
-Output is a uniquely named validated PNG in the host-injected output directory.
-Unload clears the image pipeline, enhancer, processor and allocator cache.
-Generation exceptions also unload state. Cleanup hooks are best-effort and cannot
-replace the original error or cancellation; warnings identify cleanup failures.
-Post-inference hook cleanup occurs before an output is committed; a failed hook
-drops the resident pipeline while a valid generated PNG can still be delivered. No editor/viewer mesh is produced here;
-use the resulting reference image in a separate 3D model node.
+## Validation status
 
-## Development validation
+**What is known:** Modly v0.4.3 publishes the required host capabilities. An
+independent **0.3.3 isolated backend** `edit-enhanced` run used
+**one synthetic reference** and returned a technically valid **256 × 256 PNG**
+with enhancement metadata on the tested Linux ARM64/GB10 environment. CPU tests
+cover manifest/lock contracts, shared versus private roots, input ordering, fast
+readiness, parameter checks, enhancer parsing, atomic output, cancellation, and
+cleanup.
+
+**Not independently established here:** a clean v0.4.3 Install from GitHub,
+UI-click Run of all four nodes, complete lifecycle/restart behavior, Windows/x64
+execution, or perceptual image quality. A technical PNG pass is not a quality
+assessment.
+
+For local development:
 
 ```sh
 python3 -m unittest discover -s tests -v
 python3 -m compileall -q generator.py assets.py setup.py package_extension.py
 ```
 
-CPU tests cover no-payload-read readiness, broken-venv preservation, late
-shared-map injection, no-fallback failures, separate main/PE closure,
-legacy-package rejection, manifest/lock contracts, input ordering/holes/alpha,
-parameter validation, enhancement parsing, atomic saving, monotonic progress,
-mocked denoising cancellation and cleanup. These mocks do not prove inference,
-UI rendering, downloaded bytes, or Windows support. An exact 0.3.2 backend
-run qualified the enhanced edit path with ten references on a compatible
-non-upstream host only; no 0.3.3 inference has run. Real-host acceptance needs setup + Repair,
-host-managed downloads, all four modes, visible logs/errors, cancellation,
-unload/restart, UI-initiated Run and Install from GitHub.
+`package_extension.py --target modern --output <new-directory>` creates a
+root-installable copy without changing this repository. Legacy targets that
+would duplicate the shared checkpoint are intentionally unsupported.
 
-## License
+## Credits and licenses
 
-### Credits
+- **Modly integration:** DrHepa — [MIT adapter license](LICENSE).
+- **Host:** Modly by Lightning Pixel.
+- **Image model and original prompt enhancer:** Qwen team, Alibaba.
+- **Optional community enhancer derivatives:** pottokao (T2I) and darrellbest
+  (I2I), each pinned separately in the manifest.
+- **Image pipeline:** Hugging Face Diffusers, pinned by setup.
 
-Integration: **DrHepa**. Host: **Modly by Lightning Pixel**. Models: **Qwen team,
-Alibaba**. Community enhancer publishers: **pottokao** and **darrellbest**.
-Image pipeline: **Hugging Face Diffusers**. See [LICENSE](LICENSE) for the MIT
-adapter and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for retained model and
-library terms. No sponsorship or endorsement is implied.
+The MIT adapter license does **not** relicense weights, tokenizers, system
+prompts, or separately installed libraries. See
+[Third-party notices](THIRD_PARTY_NOTICES.md) and the retained license files
+for the applicable terms. Attribution does not imply endorsement.
